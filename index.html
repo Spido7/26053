@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DRDO ID26053 - Tactical 2.5D Foveated Perception HUD</title>
+    <meta name="description" content="DRDO ID26053 Adaptive Variable-Resolution 2.5D LiDAR Foveated Perception Engine — Live Tactical HUD">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="scanlines"></div>
+
+    <!-- Maximize Nav Bar -->
+    <div id="max-overlay-bar" class="max-bar hidden">
+        <span class="max-bar__label">ACTIVE VIEWPORT</span>
+        <div class="max-bar__switches" id="max-switch-buttons">
+            <button onclick="switchMaximizedView(0)" class="max-bar__btn">1: Normal 3D</button>
+            <button onclick="switchMaximizedView(1)" class="max-bar__btn">2: Point Cloud</button>
+            <button onclick="switchMaximizedView(2)" class="max-bar__btn">3: Lidar Beam</button>
+            <button onclick="switchMaximizedView(3)" class="max-bar__btn">4: 2.5D Foveated</button>
+        </div>
+        <button onclick="closeMaximized()" class="max-bar__close">ESC / CLOSE</button>
+    </div>
+
+    <!-- ═══════════════ SIDEBAR ═══════════════ -->
+    <aside class="sidebar">
+
+        <div class="sidebar__header">
+            <div class="sidebar__header-top">
+                <span class="badge">SEC-DEFENSE SYS</span>
+                <span class="status-online"><span class="status-dot"></span>ONLINE</span>
+            </div>
+            <h1 class="sidebar__title">DRDO ID26053</h1>
+            <p class="sidebar__subtitle">ADAPTIVE VARIABLE RESOLUTION<br>2.5D LIDAR MAPPING</p>
+            <div class="divider-glow"></div>
+        </div>
+
+        <!-- Live Telemetry -->
+        <section class="sidebar__section">
+            <h2 class="section-label">LIVE TELEMETRY</h2>
+
+            <div class="metric-card">
+                <div class="metric-card__header">
+                    <span class="metric-card__name">SYSTEM LATENCY</span>
+                    <span class="metric-card__sub">JETSON AGX ORIN</span>
+                </div>
+                <div class="metric-card__value green" id="metric-latency">13.1 <span class="unit">ms</span></div>
+                <div class="metric-bar"><div class="metric-bar__fill green" style="width:28%"></div></div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-card__header">
+                    <span class="metric-card__name">PROCESSING RATE</span>
+                    <span class="metric-card__sub">TARGET: 60Hz</span>
+                </div>
+                <div class="metric-card__value cyan" id="metric-fps">64 <span class="unit">FPS</span></div>
+            </div>
+
+            <div class="metric-card">
+                <div class="metric-card__header">
+                    <span class="metric-card__name">MEMORY FOOTPRINT (2.5D VS 3D)</span>
+                    <span class="metric-card__sub amber">-91.4% SAVED</span>
+                </div>
+                <div class="metric-card__row">
+                    <div class="metric-card__value amber" id="metric-mem-curr">44.4 <span class="unit">MB</span></div>
+                    <span class="metric-card__strike">520.7 MB</span>
+                </div>
+                <div class="metric-bar"><div class="metric-bar__fill amber" style="width:8%"></div></div>
+            </div>
+        </section>
+
+        <!-- Semantic Legend -->
+        <section class="sidebar__section">
+            <h2 class="section-label">SEMANTIC LEGEND</h2>
+            <div class="legend-card">
+                <div class="legend-item">
+                    <span class="legend-dot green"></span>
+                    <span>Terrain / Drivable</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot amber"></span>
+                    <span>Passable / Curbs</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot red"></span>
+                    <span>Static Obstacles</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot purple"></span>
+                    <span>Dynamic Objects</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot blue"></span>
+                    <span>Ego Sensor</span>
+                </div>
+            </div>
+        </section>
+
+        <div class="sidebar__footer">
+            STATUS: ACTIVE SENSOR FUSION<br>
+            COORD: 23.3441° N &nbsp;35.3096° E
+        </div>
+    </aside>
+
+    <!-- ═══════════════ VIEWPORT GRID ═══════════════ -->
+    <!-- Fullscreen dim backdrop -->
+    <div id="vp-backdrop" class="vp-backdrop"></div>
+
+    <main id="viewport-grid" class="viewport-grid">
+
+        <!-- Panel 0: Normal 3D Map -->
+        <div id="panel-0" class="vp-panel">
+            <div class="vp-corner tl"></div><div class="vp-corner tr"></div>
+            <div class="vp-corner bl"></div><div class="vp-corner br"></div>
+            <div class="vp-header">
+                <span class="vp-title">NORMAL 3D MAP</span>
+                <button class="vp-expand-btn" onclick="expandPanel(0)">&#9974; EXPAND</button>
+            </div>
+            <div class="vp-close-chip" onclick="closeMaximized()">&#x2715; COLLAPSE</div>
+            <div class="vp-legend">
+                <div class="vp-legend-title">CLASSES</div>
+                <div class="vp-legend-item"><span class="vp-dot green"></span><span>Terrain</span></div>
+                <div class="vp-legend-item"><span class="vp-dot amber"></span><span>Passable</span></div>
+                <div class="vp-legend-item"><span class="vp-dot red"></span><span>Obstacle</span></div>
+                <div class="vp-legend-item"><span class="vp-dot purple"></span><span>Dynamic</span></div>
+                <div class="vp-legend-item"><span class="vp-dot blue"></span><span>Ego</span></div>
+            </div>
+            <div id="canvas-3dmap" class="vp-canvas"></div>
+        </div>
+
+        <!-- Panel 1: Semantic Point Cloud -->
+        <div id="panel-1" class="vp-panel">
+            <div class="vp-corner tl"></div><div class="vp-corner tr"></div>
+            <div class="vp-corner bl"></div><div class="vp-corner br"></div>
+            <div class="vp-header">
+                <span class="vp-title">SEMANTIC POINT CLOUD</span>
+                <button class="vp-expand-btn" onclick="expandPanel(1)">&#9974; EXPAND</button>
+            </div>
+            <div class="vp-close-chip" onclick="closeMaximized()">&#x2715; COLLAPSE</div>
+            <div class="vp-legend">
+                <div class="vp-legend-title">CLASSES</div>
+                <div class="vp-legend-item"><span class="vp-dot green"></span><span>Terrain</span></div>
+                <div class="vp-legend-item"><span class="vp-dot amber"></span><span>Passable</span></div>
+                <div class="vp-legend-item"><span class="vp-dot red"></span><span>Obstacle</span></div>
+                <div class="vp-legend-item"><span class="vp-dot purple"></span><span>Dynamic</span></div>
+                <div class="vp-legend-item"><span class="vp-dot blue"></span><span>Ego</span></div>
+            </div>
+            <div id="canvas-ptcloud" class="vp-canvas"></div>
+        </div>
+
+        <!-- Panel 2: Raw LiDAR Sensor Data -->
+        <div id="panel-2" class="vp-panel">
+            <div class="vp-corner tl"></div><div class="vp-corner tr"></div>
+            <div class="vp-corner bl"></div><div class="vp-corner br"></div>
+            <div class="vp-header">
+                <span class="vp-title">RAW LIDAR SENSOR DATA</span>
+                <button class="vp-expand-btn" onclick="expandPanel(2)">&#9974; EXPAND</button>
+            </div>
+            <div class="vp-close-chip" onclick="closeMaximized()">&#x2715; COLLAPSE</div>
+            <div class="vp-legend">
+                <div class="vp-legend-title">CLASSES</div>
+                <div class="vp-legend-item"><span class="vp-dot blue"></span><span>LiDAR Beam</span></div>
+                <div class="vp-legend-item"><span class="vp-dot amber"></span><span>Passable</span></div>
+                <div class="vp-legend-item"><span class="vp-dot red"></span><span>Obstacle</span></div>
+                <div class="vp-legend-item"><span class="vp-dot purple"></span><span>Dynamic</span></div>
+                <div class="vp-legend-item"><span class="vp-dot blue"></span><span>Ego</span></div>
+            </div>
+            <div id="canvas-lidar" class="vp-canvas"></div>
+        </div>
+
+        <!-- Panel 3: Adaptive 2.5D Foveated -->
+        <div id="panel-3" class="vp-panel vp-panel--highlight">
+            <div class="vp-corner tl cyan"></div><div class="vp-corner tr cyan"></div>
+            <div class="vp-corner bl cyan"></div><div class="vp-corner br cyan"></div>
+            <div class="vp-header">
+                <span class="vp-title bright">FINAL: ADAPTIVE 2.5D FOVEATED</span>
+                <button class="vp-expand-btn" onclick="expandPanel(3)">&#9974; EXPAND</button>
+            </div>
+            <span class="vp-badge-bottom">OPTIMIZED RESOLUTION</span>
+            <div class="vp-close-chip" onclick="closeMaximized()">&#x2715; COLLAPSE</div>
+            <div class="vp-legend">
+                <div class="vp-legend-title">CLASSES</div>
+                <div class="vp-legend-item"><span class="vp-dot green"></span><span>Foveal Terrain</span></div>
+                <div class="vp-legend-item"><span class="vp-dot amber"></span><span>Passable / Curbs</span></div>
+                <div class="vp-legend-item"><span class="vp-dot red"></span><span>Static Obstacles</span></div>
+                <div class="vp-legend-item"><span class="vp-dot purple"></span><span>Dynamic Objects</span></div>
+                <div class="vp-legend-item"><span class="vp-dot grey"></span><span>Peripheral Cells</span></div>
+                <div class="vp-legend-item"><span class="vp-dot blue"></span><span>Ego Vehicle</span></div>
+            </div>
+            <div id="canvas-foveated" class="vp-canvas"></div>
+        </div>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
